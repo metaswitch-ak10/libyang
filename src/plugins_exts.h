@@ -189,7 +189,7 @@ struct lyplg_ext_record {
                                       Instead, there should be defined multiple items in the plugins list, each with the
                                       different revision, but all with the same pointer to the plugin functions. The
                                       only valid use case for the NULL revision is the case the module has no revision. */
-    const char *name;            /**< name of the extension */
+    const char *name;            /**< YANG name of the extension */
 
     /* runtime data */
     struct lyplg_ext plugin;     /**< data to utilize plugin implementation */
