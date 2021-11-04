@@ -28,11 +28,12 @@ setup(void **state)
 }
 
 static void
-test_compile(void **state) {
+test_compile(void **state)
+{
     struct lys_module *mod;
     const char *data = "module test-parent {yang-version 1.1;namespace \"urn:test-parent\";"
-                "prefix \"tp\"; import ietf-yang-schema-mount {prefix yangmnt;} container root {"
-                "yangmnt:mount-point \"root\" {}}}";
+            "prefix \"tp\"; import ietf-yang-schema-mount {prefix yangmnt;} container root {"
+            "yangmnt:mount-point \"root\" {}}}";
 
     assert_int_equal(LY_SUCCESS, lys_parse_mem(UTEST_LYCTX, data, LYS_IN_YANG, &mod));
 }

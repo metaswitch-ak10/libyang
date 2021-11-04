@@ -182,7 +182,7 @@ typedef LY_ERR (*lyplg_ext_schema_printer_clb)(struct lyspr_ctx *ctx, struct lys
  * @param[out] ly_err
  */
 typedef LY_ERR (*lyplg_ext_data_parse_clb)(struct ly_in *in, struct lysc_ext_instance *ext, struct lyd_node *parent,
-            uint32_t parse_opts, uint32_t val_opts);
+        uint32_t parse_opts, uint32_t val_opts);
 
 /**
  * @brief Extension plugin implementing various aspects of a YANG extension

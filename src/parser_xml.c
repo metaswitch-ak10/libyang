@@ -420,6 +420,7 @@ lydxml_subtree_r(struct lyd_xml_ctx *lydctx, struct lyd_node *parent, struct lyd
 {
     LY_ERR ret = LY_SUCCESS, r;
     LY_ARRAY_COUNT_TYPE u;
+
     LY_ERR (*ext_parse)(struct ly_in *in, struct lysc_ext_instance *ext, struct lyd_node *parent,
             uint32_t parse_opts, uint32_t val_opts);
     const char *prefix, *name, *val;
