@@ -21,7 +21,9 @@
 
 #include "dict.h"
 #include "libyang.h"
+#include "log.h"
 #include "plugins_exts.h"
+#include "tree_data.h"
 #include "tree_schema.h"
 
 /**
@@ -42,7 +44,7 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysp_ext_ins
     struct lysp_import *module;
     char *ext_prefix, *ext_name;
 
-    /* Check if it is the only instace of the mount-point among its' siblings */
+    /* Check if it is the only instance of the mount-point among its' siblings */
     parent = (struct lysp_node *) p_ext->parent;
     exts = parent->exts;
     pmod = lysc_ctx_get_pmod(cctx);
@@ -79,8 +81,6 @@ static LY_ERR
 schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext, struct lysc_ext_instance *c_ext)
 {
     const struct lys_module *cur_mod;
-    const char *label;
-    LY_ERR ret;
 
     /* Check if processing right callback */
     assert(!strcmp(p_ext->name, "mount-point"));
@@ -101,21 +101,59 @@ schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ex
         return LY_EINVAL;
     }
 
-    /* Insert the label of the mount-point into the dictionary */
-    ret = lydict_insert(lysc_ctx_get_ctx(cctx), p_ext->argument, strlen(p_ext->argument), &label);
-    if (ret) {
-        return ret;
-    } else {
-        /* Insert label into extension instace */
-        c_ext->data = (void *) label;
-        return ret;
-    }
+    (void)c_ext;
+
+    return LY_SUCCESS;
 }
 
 static LY_ERR
-schema_mount_validate(struct lysc_ext_instance *ext, struct lyd_node *node)
+schema_mount_parse(struct ly_in *in, LYD_FORMAT format, struct lysc_ext_instance *ext,
+        struct lyd_node *parent, uint32_t parse_opts, uint32_t val_opts)
 {
-    return LY_SUCCESS;
+    LY_ERR ret = LY_SUCCESS;
+    const struct ly_ctx *ctx;
+    struct lyd_node *tree, *yanglib, *mount_point;
+    struct ly_err_item *err;
+    ly_bool found_yanglib = 0, found_mount_point = 0;
+    uint32_t old_log_opts;
+
+    ctx = LYD_CTX(parent);
+
+    old_log_opts = ly_log_options(LY_LOSTORE_LAST);
+    /* Check if intended for schema-mount - had both required data nodes */
+    while (1) {
+        /* Parse by sub-trees */
+        if (lyd_parse_data(ctx, NULL, in, 0, parse_opts, val_opts, &tree)) {
+            /* Either end or error - must check */
+            err = ly_err_first(ctx);
+            if (err->vecode == LYVE_SYNTAX_XML) {
+                /* Could just be EOF - check */
+                /* TODO: Search in error message  if EOF then break */
+                break;
+            } else {
+                /* Other parsing error encountered */
+                ret = LY_EINVAL;
+                goto cleanup;
+            }
+        }
+
+        lyd_find_path(tree, "/ietf-yang-library:yang-library", 0, &yanglib);
+        if (yanglib && !(yanglib->flags & LYD_DEFAULT)) {
+            /* Found and not created by flags */
+            found_yanglib = 1;
+            continue;
+        }
+        lyd_find_path(tree, "/ietf-yang-schema-mount:mount-points", 0, &mount_point);
+        if (mount_point && !(mount_point->flags & LYD_DEFAULT)) {
+            /* Was found and not created by flags */
+            found_mount_point = 1;
+            continue;
+        }
+    }
+
+cleanup:
+    ly_log_options(old_log_opts);
+    return ret;
 }
 
 /**
@@ -133,7 +171,8 @@ const struct lyplg_ext_record plugins_schema_mount[] = {
 
         .plugin.id = "libyang 2 - Schema Mount, version 1",
         .plugin.compile = &schema_mount_compile,
-        .plugin.validate = &schema_mount_validate,
+        .plugin.parse = &schema_mount_parse,
+        .plugin.validate = NULL,
         .plugin.sprinter = NULL,
         .plugin.free = NULL
     },
