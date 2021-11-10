@@ -30,12 +30,14 @@
  * @brief Check if given mount point is unique among its' siblings
  *
  * @param cctx Compilation context.
- * @param p_ext Extension instance of the mount-point
+ * @param c_ext Compiled extension instance for checking uniqueness.
+ * @param p_ext Extension instance of the mount-point for comparison.
  *
  * @return LY_SUCCESS if is unique. LY_EINVAL otherwise.
  */
 static LY_ERR
-schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext)
+schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysc_ext_instance *c_ext,
+                                const struct lysp_ext_instance *p_ext)
 {
     struct lysp_module *pmod;
     struct lysp_ext_instance *exts;
@@ -45,7 +47,7 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysp_ext_ins
     char *ext_prefix, *ext_name;
 
     /* Check if it is the only instance of the mount-point among its' siblings */
-    parent = (struct lysp_node *) p_ext->parent;
+    parent = (struct lysp_node *) c_ext->parent;
     exts = parent->exts;
     pmod = lysc_ctx_get_pmod(cctx);
     LY_ARRAY_FOR(exts, u) {
@@ -99,7 +101,7 @@ schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ex
     }
 
     /* Check if the only mount-point among siblings */
-    if (schema_mount_unique_mount_point(cctx, p_ext)) {
+    if (schema_mount_unique_mount_point(cctx, c_ext, p_ext)) {
         return LY_EINVAL;
     }
 
