@@ -64,7 +64,8 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysp_ext_ins
             }
         }
         free(ext_prefix);
-        if ((&exts[u] != p_ext) && module && (!strcmp(module->name, "ietf-yang-schema-mount")) && (!strcmp(exts[u].name, "mount-point"))) {
+        if ((&exts[u] != p_ext) && module && (!strcmp(module->name, "ietf-yang-schema-mount")) 
+            && (!strcmp(exts[u].name, "mount-point"))) {
             /* Found another instance of mount-point only one allowed per node */
             return LY_EINVAL;
         }
@@ -78,12 +79,13 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysp_ext_ins
  * Implementation of ::lyplg_ext_compile_clb callback set as lyext_plugin::compile.
  */
 static LY_ERR
-schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext, struct lysc_ext_instance *c_ext)
+schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext, 
+    struct lysc_ext_instance *c_ext)
 {
     const struct lys_module *cur_mod;
 
     /* Check if processing right callback */
-    assert(!strcmp(p_ext->name, "mount-point"));
+    assert(!strcmp(p_ext->name, "yangmnt:mount-point"));
 
     /* Check if mount point was found in YANG version 1.1 module */
     cur_mod = lysc_ctx_get_cur_mod(cctx);
