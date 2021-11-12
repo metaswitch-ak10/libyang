@@ -421,8 +421,7 @@ lydxml_subtree_r(struct lyd_xml_ctx *lydctx, struct lyd_node *parent, struct lyd
     LY_ERR ret = LY_SUCCESS, r;
     LY_ARRAY_COUNT_TYPE u;
 
-    LY_ERR (*ext_parse)(struct ly_in *in, struct lysc_ext_instance *ext, struct lyd_node *parent,
-            uint32_t parse_opts, uint32_t val_opts);
+    lyplg_ext_data_parse_clb ext_parse;
     const char *prefix, *name, *val;
     size_t prefix_len, name_len;
     struct lyxml_ctx *xmlctx;
@@ -492,7 +491,8 @@ lydxml_subtree_r(struct lyd_xml_ctx *lydctx, struct lyd_node *parent, struct lyd
             }
             LY_ARRAY_FOR(exts, u) {
                 ext_parse = exts[u].def->plugin->parse;
-                r = ext_parse(xmlctx->in, &exts[u], parent, lydctx->parse_opts, lydctx->val_opts);
+                r = ext_parse(xmlctx->in, LYD_XML, &exts[u], parent, lydctx->parse_opts,
+                        lydctx->val_opts);
                 if (r == LY_SUCCESS) {
                     /* Data was from this module*/
                     return LY_SUCCESS;

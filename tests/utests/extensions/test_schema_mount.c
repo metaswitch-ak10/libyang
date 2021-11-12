@@ -38,6 +38,15 @@ test_compile(void **state)
     assert_int_equal(LY_SUCCESS, lys_parse_mem(UTEST_LYCTX, data, LYS_IN_YANG, &mod));
 }
 
+static void
+test_parse_no_yanglib(void **state)
+{
+    struct ly_ctx *new;
+    const char *data = "<root/>";
+
+    assert_int_equal(LY_SUCCESS, ly_ctx_new(NULL, 0, &new));
+}
+
 int
 main(void)
 {

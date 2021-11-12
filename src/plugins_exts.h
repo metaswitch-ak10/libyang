@@ -17,6 +17,7 @@
 
 #include "log.h"
 #include "plugins.h"
+#include "tree_data.h"
 #include "tree_edit.h"
 #include "tree_schema.h"
 
@@ -175,13 +176,15 @@ typedef LY_ERR (*lyplg_ext_schema_printer_clb)(struct lyspr_ctx *ctx, struct lys
  * @brief Callback to data according to extension specification.
  *
  * @param[in] in
+ * @param[in] format
  * @param[in] ext
  * @param[in] parent
  * @param[in] parse_opts
  * @param[in] val_opts
  * @param[out] ly_err
  */
-typedef LY_ERR (*lyplg_ext_data_parse_clb)(struct ly_in *in, struct lysc_ext_instance *ext, struct lyd_node *parent,
+typedef LY_ERR (*lyplg_ext_data_parse_clb)(struct ly_in *in, LYD_FORMAT format,
+        struct lysc_ext_instance *ext, struct lyd_node *parent,
         uint32_t parse_opts, uint32_t val_opts);
 
 /**

@@ -37,7 +37,7 @@
  */
 static LY_ERR
 schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysc_ext_instance *c_ext,
-                                const struct lysp_ext_instance *p_ext)
+        const struct lysp_ext_instance *p_ext)
 {
     struct lysp_module *pmod;
     struct lysp_ext_instance *exts;
@@ -66,8 +66,8 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysc_ext_ins
             }
         }
         free(ext_prefix);
-        if ((&exts[u] != p_ext) && module && (!strcmp(module->name, "ietf-yang-schema-mount")) 
-            && (!strcmp(exts[u].name, "mount-point"))) {
+        if ((&exts[u] != p_ext) && module && (!strcmp(module->name, "ietf-yang-schema-mount")) &&
+                (!strcmp(exts[u].name, "mount-point"))) {
             /* Found another instance of mount-point only one allowed per node */
             return LY_EINVAL;
         }
@@ -78,11 +78,13 @@ schema_mount_unique_mount_point(struct lysc_ctx *cctx, const struct lysc_ext_ins
 /**
  * @brief Schema mount compile.
  *
+ * Checks if it can be a valid extension instance for yang schema mount.
+ *
  * Implementation of ::lyplg_ext_compile_clb callback set as lyext_plugin::compile.
  */
 static LY_ERR
-schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext, 
-    struct lysc_ext_instance *c_ext)
+schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ext,
+        struct lysc_ext_instance *c_ext)
 {
     const struct lys_module *cur_mod;
 
@@ -110,13 +112,18 @@ schema_mount_compile(struct lysc_ctx *cctx, const struct lysp_ext_instance *p_ex
     return LY_SUCCESS;
 }
 
+/**
+ * @brief Parse callback for schema mount.
+ *
+ * Check if data is valid for schema mount and inserts it to the parent.
+ */
 static LY_ERR
 schema_mount_parse(struct ly_in *in, LYD_FORMAT format, struct lysc_ext_instance *ext,
         struct lyd_node *parent, uint32_t parse_opts, uint32_t val_opts)
 {
     LY_ERR ret = LY_SUCCESS;
     const struct ly_ctx *ctx;
-    struct lyd_node *tree, *yanglib, *mount_point;
+    struct lyd_node *subtree, *yanglib, *mount_point, *final = NULL;
     struct ly_err_item *err;
     ly_bool found_yanglib = 0, found_mount_point = 0;
     uint32_t old_log_opts;
@@ -127,12 +134,13 @@ schema_mount_parse(struct ly_in *in, LYD_FORMAT format, struct lysc_ext_instance
     /* Check if intended for schema-mount - had both required data nodes */
     while (1) {
         /* Parse by sub-trees */
-        if (lyd_parse_data(ctx, NULL, in, 0, parse_opts, val_opts, &tree)) {
+        if (lyd_parse_data(ctx, NULL, in, 0, parse_opts, val_opts, &subtree)) {
             /* Either end or error - must check */
             err = ly_err_first(ctx);
             if (err->vecode == LYVE_SYNTAX_XML) {
                 /* Could just be EOF - check */
                 /* TODO: Search in error message  if EOF then break */
+                lyd_insert_sibling(final, subtree, NULL);
                 break;
             } else {
                 /* Other parsing error encountered */
@@ -141,18 +149,34 @@ schema_mount_parse(struct ly_in *in, LYD_FORMAT format, struct lysc_ext_instance
             }
         }
 
-        lyd_find_path(tree, "/ietf-yang-library:yang-library", 0, &yanglib);
+        if (!final) {
+            /* If there was nothing inserted yet this subtree becomes the one to insert into */
+            final = subtree;
+        }
+
+        lyd_find_path(subtree, "/ietf-yang-library:yang-library", 0, &yanglib);
         if (yanglib && !(yanglib->flags & LYD_DEFAULT)) {
             /* Found and not created by flags */
             found_yanglib = 1;
+            lyd_insert_sibling(final, yanglib, NULL);
             continue;
         }
-        lyd_find_path(tree, "/ietf-yang-schema-mount:mount-points", 0, &mount_point);
+        lyd_find_path(subtree, "/ietf-yang-schema-mount:mount-points", 0, &mount_point);
         if (mount_point && !(mount_point->flags & LYD_DEFAULT)) {
             /* Was found and not created by flags */
             found_mount_point = 1;
+            lyd_insert_sibling(final, mount_point, NULL);
             continue;
         }
+    }
+
+    if (found_mount_point && found_yanglib) {
+        /* It is valid data and can be inserted into the parent */
+        lyd_insert_child(parent, final);
+    } else {
+        /* It was not data for schema mount */
+        lyd_free_tree(final);
+        ret = LY_ENOT;
     }
 
 cleanup:
